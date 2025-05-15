@@ -1,73 +1,46 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:video_player/video_player.dart';
 
 import '../utils.dart';
 import '../controller/story_controller.dart';
 
-class VideoLoader {
-  String url;
-
-  File? videoFile;
-
-  Map<String, dynamic>? requestHeaders;
-
-  LoadState state = LoadState.loading;
-
-  VideoLoader(this.url, {this.requestHeaders});
-
-  void loadVideo(VoidCallback onComplete) {
-    if (this.videoFile != null) {
-      this.state = LoadState.success;
-      onComplete();
-    }
-
-    final fileStream = DefaultCacheManager()
-        .getFileStream(this.url, headers: this.requestHeaders as Map<String, String>?);
-
-    fileStream.listen((fileResponse) {
-      if (fileResponse is FileInfo) {
-        if (this.videoFile == null) {
-          this.state = LoadState.success;
-          this.videoFile = fileResponse.file;
-          onComplete();
-        }
-      }
-    });
-  }
-}
-
+/// Widget for displaying video stories.
+///
+/// This widget streams video directly from a network URL.
+/// It does not use any caching mechanisms.
 class StoryVideo extends StatefulWidget {
+  /// The controller for managing story playback.
   final StoryController? storyController;
-  final VideoLoader videoLoader;
+
+  /// The URL of the video to be played.
+  final String url;
+
+  /// Optional HTTP headers for the video request.
+  final Map<String, String>? requestHeaders;
+
+  /// Widget to display while the video is loading.
   final Widget? loadingWidget;
+
+  /// Widget to display if the video fails to load.
   final Widget? errorWidget;
 
-  StoryVideo(this.videoLoader, {
+  /// Creates a StoryVideo widget that plays video from a network URL.
+  ///
+  /// [url] is the network URL of the video.
+  /// [storyController] is an optional controller for playback.
+  /// [requestHeaders] are optional HTTP headers for the video request.
+  /// [loadingWidget] is an optional widget to display during loading.
+  /// [errorWidget] is an optional widget to display on error.
+  StoryVideo.url(
+    this.url, {
     Key? key,
     this.storyController,
+    this.requestHeaders,
     this.loadingWidget,
     this.errorWidget,
   }) : super(key: key ?? UniqueKey());
-
-  static StoryVideo url(String url, {
-    StoryController? controller,
-    Map<String, dynamic>? requestHeaders,
-    Key? key,
-    Widget? loadingWidget,
-    Widget? errorWidget,
-  }) {
-    return StoryVideo(
-      VideoLoader(url, requestHeaders: requestHeaders),
-      storyController: controller,
-      key: key,
-      loadingWidget: loadingWidget,
-      errorWidget: errorWidget,
-    );
-  }
 
   @override
   State<StatefulWidget> createState() {
@@ -76,73 +49,87 @@ class StoryVideo extends StatefulWidget {
 }
 
 class StoryVideoState extends State<StoryVideo> {
-  Future<void>? playerLoader;
-
+  VideoPlayerController? _playerController;
   StreamSubscription? _streamSubscription;
-
-  VideoPlayerController? playerController;
+  LoadState _loadState = LoadState.loading;
 
   @override
   void initState() {
     super.initState();
-
-    widget.storyController!.pause();
-
-    widget.videoLoader.loadVideo(() {
-      if (widget.videoLoader.state == LoadState.success) {
-        this.playerController =
-            VideoPlayerController.file(widget.videoLoader.videoFile!);
-
-        playerController!.initialize().then((v) {
-          setState(() {});
-          widget.storyController!.play();
-        });
-
-        if (widget.storyController != null) {
-          _streamSubscription =
-              widget.storyController!.playbackNotifier.listen((playbackState) {
-            if (playbackState == PlaybackState.pause) {
-              playerController!.pause();
-            } else {
-              playerController!.play();
-            }
-          });
-        }
-      } else {
-        setState(() {});
-      }
-    });
+    // Pause the story controller while the video is initializing.
+    widget.storyController?.pause();
+    _initializePlayer();
   }
 
-  Widget getContentView() {
-    if (widget.videoLoader.state == LoadState.success &&
-        playerController!.value.isInitialized) {
+  /// Initializes the video player with the provided URL.
+  Future<void> _initializePlayer() async {
+    try {
+      _playerController = VideoPlayerController.networkUrl(
+        Uri.parse(widget.url),
+        httpHeaders: widget.requestHeaders ?? {},
+      );
+      await _playerController!.initialize();
+      // Video has successfully initialized.
+      setState(() {
+        _loadState = LoadState.success;
+      });
+      // Resume story playback.
+      widget.storyController?.play();
+
+      // Listen to playback state changes from the story controller.
+      if (widget.storyController != null) {
+        _streamSubscription = widget.storyController!.playbackNotifier.listen((playbackState) {
+          if (playbackState == PlaybackState.pause) {
+            _playerController!.pause();
+          } else {
+            _playerController!.play();
+          }
+        });
+      }
+    } catch (e) {
+      // Video failed to initialize.
+      setState(() {
+        _loadState = LoadState.failure;
+      });
+    }
+  }
+
+  /// Builds the content widget based on the current load state.
+  Widget _buildContent() {
+    if (_loadState == LoadState.success && _playerController!.value.isInitialized) {
+      // Display the video player if successfully loaded.
       return Center(
         child: AspectRatio(
-          aspectRatio: playerController!.value.aspectRatio,
-          child: VideoPlayer(playerController!),
+          aspectRatio: _playerController!.value.aspectRatio,
+          child: VideoPlayer(_playerController!),
         ),
       );
     }
 
-    return widget.videoLoader.state == LoadState.loading
-        ? Center(
-            child: widget.loadingWidget?? Container(
-              width: 70,
-              height: 70,
-              child: CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                strokeWidth: 3,
+    if (_loadState == LoadState.failure) {
+      // Display the error widget if loading failed.
+      return Center(
+        child: widget.errorWidget ??
+            const Text(
+              "Media failed to load.",
+              style: TextStyle(
+                color: Colors.white,
               ),
             ),
-          )
-        : Center(
-            child: widget.errorWidget?? Text(
-            "Media failed to load.",
-            style: TextStyle(
-              color: Colors.white,
+      );
+    }
+    // Display the loading widget by default (while loading).
+    return Center(
+      child: widget.loadingWidget ??
+          Container(
+            width: 70,
+            height: 70,
+            child: const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              strokeWidth: 3,
             ),
-          ));
+          ),
+    );
   }
 
   @override
@@ -151,13 +138,14 @@ class StoryVideoState extends State<StoryVideo> {
       color: Colors.black,
       height: double.infinity,
       width: double.infinity,
-      child: getContentView(),
+      child: _buildContent(),
     );
   }
 
   @override
   void dispose() {
-    playerController?.dispose();
+    // Dispose of the video player controller and stream subscription.
+    _playerController?.dispose();
     _streamSubscription?.cancel();
     super.dispose();
   }
