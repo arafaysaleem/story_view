@@ -228,7 +228,7 @@ class StoryItem {
     BoxFit imageFit = BoxFit.fitWidth,
     Widget? caption,
     bool shown = false,
-    Map<String, dynamic>? requestHeaders,
+    Map<String, String>? requestHeaders,
     Widget? loadingWidget,
     Widget? errorWidget,
   }) {
