@@ -12,7 +12,7 @@ import '../controller/story_controller.dart';
 /// It does not use any caching mechanisms.
 class StoryVideo extends StatefulWidget {
   /// The controller for managing story playback.
-  final StoryController? storyController;
+  final StoryController? controller;
 
   /// The URL of the video to be played.
   final String url;
@@ -29,14 +29,14 @@ class StoryVideo extends StatefulWidget {
   /// Creates a StoryVideo widget that plays video from a network URL.
   ///
   /// [url] is the network URL of the video.
-  /// [storyController] is an optional controller for playback.
+  /// [controller] is an optional controller for playback.
   /// [requestHeaders] are optional HTTP headers for the video request.
   /// [loadingWidget] is an optional widget to display during loading.
   /// [errorWidget] is an optional widget to display on error.
   StoryVideo.url(
     this.url, {
     Key? key,
-    this.storyController,
+    this.controller,
     this.requestHeaders,
     this.loadingWidget,
     this.errorWidget,
@@ -57,7 +57,7 @@ class StoryVideoState extends State<StoryVideo> {
   void initState() {
     super.initState();
     // Pause the story controller while the video is initializing.
-    widget.storyController?.pause();
+    widget.controller?.pause();
     _initializePlayer();
   }
 
@@ -74,11 +74,11 @@ class StoryVideoState extends State<StoryVideo> {
         _loadState = LoadState.success;
       });
       // Resume story playback.
-      widget.storyController?.play();
+      widget.controller?.play();
 
       // Listen to playback state changes from the story controller.
-      if (widget.storyController != null) {
-        _streamSubscription = widget.storyController!.playbackNotifier.listen((playbackState) {
+      if (widget.controller != null) {
+        _streamSubscription = widget.controller!.playbackNotifier.listen((playbackState) {
           if (playbackState == PlaybackState.pause) {
             _playerController!.pause();
           } else {
