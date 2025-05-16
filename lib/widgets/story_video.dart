@@ -32,6 +32,9 @@ class StoryVideo extends StatefulWidget {
   /// Height of the video.
   final double? height;
 
+  /// Whether the video should start playing automatically.
+  final bool autoplay;
+
   /// Creates a StoryVideo widget that plays video from a network URL.
   ///
   /// [url] is the network URL of the video.
@@ -41,6 +44,7 @@ class StoryVideo extends StatefulWidget {
   /// [errorWidget] is an optional widget to display on error.
   /// [fit] is the BoxFit for the video.
   /// [height] is the height of the video.
+  /// [autoplay] determines if the video should play automatically.
   StoryVideo.url(
     this.url, {
     Key? key,
@@ -50,6 +54,7 @@ class StoryVideo extends StatefulWidget {
     this.errorWidget,
     this.fit,
     this.height,
+    this.autoplay = true,
   }) : super(key: key ?? UniqueKey());
 
   @override
@@ -67,6 +72,7 @@ class StoryVideoState extends State<StoryVideo> {
   void initState() {
     super.initState();
     // Pause the story controller while the video is initializing.
+    // If autoplay is false, the controller should remain paused.
     widget.controller?.pause();
     _initializePlayer();
   }
@@ -83,10 +89,16 @@ class StoryVideoState extends State<StoryVideo> {
       setState(() {
         _loadState = LoadState.success;
       });
-      // Start playback automatically.
-      _playerController!.play(); 
-      // Resume story playback.
-      widget.controller?.play();
+
+      if (widget.autoplay) {
+        // Start playback automatically.
+        _playerController!.play();
+        // Resume story playback.
+        widget.controller?.play();
+      } else {
+        // If not autoplaying, ensure the story controller remains paused.
+        widget.controller?.pause();
+      }
 
       // Listen to playback state changes from the story controller.
       if (widget.controller != null) {

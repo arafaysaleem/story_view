@@ -225,8 +225,9 @@ class StoryItem {
     required StoryController controller,
     Key? key,
     Duration? duration,
-    BoxFit? fit,
-    double? height,
+    BoxFit? videoFit,
+    double? videoHeight,
+    bool autoplay = true, // Added autoplay parameter
     bool shown = false,
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
@@ -239,8 +240,9 @@ class StoryItem {
           requestHeaders: requestHeaders,
           loadingWidget: loadingWidget,
           errorWidget: errorWidget,
-          fit: fit,
-          height: height,
+          fit: videoFit,
+          height: videoHeight,
+          autoplay: autoplay, // Pass autoplay to StoryVideo
         ),
         shown: shown,
         duration: duration ?? Duration(seconds: 10));
