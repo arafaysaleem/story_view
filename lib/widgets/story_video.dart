@@ -26,6 +26,12 @@ class StoryVideo extends StatefulWidget {
   /// Widget to display if the video fails to load.
   final Widget? errorWidget;
 
+  /// BoxFit for the video.
+  final BoxFit? fit;
+
+  /// Height of the video.
+  final double? height;
+
   /// Creates a StoryVideo widget that plays video from a network URL.
   ///
   /// [url] is the network URL of the video.
@@ -33,6 +39,8 @@ class StoryVideo extends StatefulWidget {
   /// [requestHeaders] are optional HTTP headers for the video request.
   /// [loadingWidget] is an optional widget to display during loading.
   /// [errorWidget] is an optional widget to display on error.
+  /// [fit] is the BoxFit for the video.
+  /// [height] is the height of the video.
   StoryVideo.url(
     this.url, {
     Key? key,
@@ -40,6 +48,8 @@ class StoryVideo extends StatefulWidget {
     this.requestHeaders,
     this.loadingWidget,
     this.errorWidget,
+    this.fit,
+    this.height,
   }) : super(key: key ?? UniqueKey());
 
   @override
@@ -101,11 +111,29 @@ class StoryVideoState extends State<StoryVideo> {
   Widget _buildContent() {
     if (_loadState == LoadState.success && _playerController!.value.isInitialized) {
       // Display the video player if successfully loaded.
-      return Center(
-        child: AspectRatio(
-          aspectRatio: _playerController!.value.aspectRatio,
-          child: VideoPlayer(_playerController!),
+      final videoPlayer = AspectRatio(
+        aspectRatio: _playerController!.value.aspectRatio,
+        child: FittedBox(
+          fit: widget.fit ?? BoxFit.fitWidth,
+          child: SizedBox(
+            width: _playerController!.value.size.width,
+            height: _playerController!.value.size.height,
+            child: VideoPlayer(_playerController!),
+          ),
         ),
+      );
+
+      if (widget.height != null) {
+        return Center(
+          child: SizedBox(
+            height: widget.height,
+            child: videoPlayer,
+          ),
+        );
+      }
+
+      return Center(
+        child: videoPlayer,
       );
     }
 

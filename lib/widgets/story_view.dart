@@ -225,7 +225,8 @@ class StoryItem {
     required StoryController controller,
     Key? key,
     Duration? duration,
-    BoxFit imageFit = BoxFit.fitWidth,
+    BoxFit? fit,
+    double? height,
     bool shown = false,
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
@@ -238,6 +239,8 @@ class StoryItem {
           requestHeaders: requestHeaders,
           loadingWidget: loadingWidget,
           errorWidget: errorWidget,
+          fit: fit,
+          height: height,
         ),
         shown: shown,
         duration: duration ?? Duration(seconds: 10));
