@@ -226,40 +226,18 @@ class StoryItem {
     Key? key,
     Duration? duration,
     BoxFit imageFit = BoxFit.fitWidth,
-    Widget? caption,
     bool shown = false,
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
     Widget? errorWidget,
   }) {
     return StoryItem(
-        Container(
-          key: key,
-          color: Colors.black,
-          child: Stack(
-            children: <Widget>[
-              StoryVideo.url(
-                url,
-                controller: controller,
-                requestHeaders: requestHeaders,
-                loadingWidget: loadingWidget,
-                errorWidget: errorWidget,
-              ),
-              SafeArea(
-                child: Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Container(
-                    width: double.infinity,
-                    margin: EdgeInsets.only(bottom: 24),
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                    color:
-                        caption != null ? Colors.black54 : Colors.transparent,
-                    child: caption?? const SizedBox.shrink(),
-                  ),
-                ),
-              )
-            ],
-          ),
+        StoryVideo.url(
+          url,
+          controller: controller,
+          requestHeaders: requestHeaders,
+          loadingWidget: loadingWidget,
+          errorWidget: errorWidget,
         ),
         shown: shown,
         duration: duration ?? Duration(seconds: 10));
