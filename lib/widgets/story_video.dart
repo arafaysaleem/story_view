@@ -73,6 +73,8 @@ class StoryVideoState extends State<StoryVideo> {
       setState(() {
         _loadState = LoadState.success;
       });
+      // Start playback automatically.
+      _playerController!.play(); 
       // Resume story playback.
       widget.controller?.play();
 
@@ -88,6 +90,7 @@ class StoryVideoState extends State<StoryVideo> {
       }
     } catch (e) {
       // Video failed to initialize.
+      debugPrint("Video failed to initialize: $e"); // Added debug print
       setState(() {
         _loadState = LoadState.failure;
       });
@@ -134,12 +137,7 @@ class StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      height: double.infinity,
-      width: double.infinity,
-      child: _buildContent(),
-    );
+    return _buildContent(); // Removed container
   }
 
   @override
