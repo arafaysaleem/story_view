@@ -424,7 +424,7 @@ class StoryView extends StatefulWidget {
 class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   AnimationController? _animationController;
   Animation<double>? _currentAnimation;
-  Timer? _nextDebouncer;
+  bool _longPressPaused = false; // Added for long press state
 
   StreamSubscription<PlaybackState>? _playbackSubscription;
 
@@ -488,8 +488,6 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    _clearDebouncer();
-
     _animationController?.dispose();
     _playbackSubscription?.cancel();
 
@@ -597,28 +595,44 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     }
   }
 
-  void _clearDebouncer() {
-    _nextDebouncer?.cancel();
-    _nextDebouncer = null;
-  }
-
-  void _removeNextHold() {
-    _nextDebouncer?.cancel();
-    _nextDebouncer = null;
-  }
-
-  void _holdNext() {
-    _nextDebouncer?.cancel();
-    _nextDebouncer = Timer(Duration(milliseconds: 500), () {});
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
       color: Colors.white,
       child: Stack(
         children: <Widget>[
-          _currentView,
+          GestureDetector(
+            onTap: () {
+              // Always toggle play/pause for the main story controller on central tap.
+              if (widget.controller.playbackNotifier.value ==
+                  PlaybackState.play) {
+                widget.controller.pause();
+              } else {
+                widget.controller.play();
+              }
+            },
+            onLongPressStart: (_) {
+              if (widget.controller.playbackNotifier.value ==
+                  PlaybackState.play) {
+                widget.controller.pause();
+                _longPressPaused = true;
+              }
+            },
+            onLongPressEnd: (_) {
+              if (_longPressPaused) {
+                widget.controller.play();
+                _longPressPaused = false;
+              }
+            },
+            onLongPressCancel: () {
+              if (_longPressPaused) {
+                widget.controller.play();
+                _longPressPaused = false;
+              }
+            },
+            child: _currentView,
+            behavior: HitTestBehavior.opaque, // Capture taps in the central area not caught by left/right
+          ),
           Visibility(
             visible: widget.progressPosition != ProgressPosition.none,
             child: Align(
@@ -645,22 +659,14 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
             ),
           ),
           Align(
-              alignment: Alignment.centerRight,
-              heightFactor: 1,
+            alignment: Alignment.centerRight,
+            heightFactor: 1,
+            child: Container( // Define the tappable area for 'next'
+              width: MediaQuery.of(context).size.width / 3.5, // Approximate right third
+              color: Colors.transparent, // Necessary for hit testing on empty container space
               child: GestureDetector(
-                onTapDown: (details) {
-                  widget.controller.pause();
-                },
-                onTapCancel: () {
-                  widget.controller.play();
-                },
-                onTapUp: (details) {
-                  // if debounce timed out (not active) then continue anim
-                  if (_nextDebouncer?.isActive == false) {
-                    widget.controller.play();
-                  } else {
-                    widget.controller.next();
-                  }
+                onTapUp: (details) { // Simplified to only go next
+                  widget.controller.next();
                 },
                 onVerticalDragStart: widget.onVerticalSwipeComplete == null
                     ? null
@@ -696,15 +702,23 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
                         verticalDragInfo = null;
                       },
-              )),
+                behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+              ),
+            ),
+          ),
           Align(
             alignment: Alignment.centerLeft,
             heightFactor: 1,
-            child: SizedBox(
-                child: GestureDetector(onTap: () {
+            child: Container( // Define the tappable area for 'previous'
+              width: MediaQuery.of(context).size.width / 3.5, // Approximate left third
+              color: Colors.transparent, // Necessary for hit testing
+              child: GestureDetector(
+                onTap: () {
                   widget.controller.previous();
-                }),
-                width: 70),
+                },
+                behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+              ),
+            ),
           ),
         ],
       ),
