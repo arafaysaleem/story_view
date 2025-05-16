@@ -462,22 +462,18 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         widget.controller.playbackNotifier.listen((playbackStatus) {
       switch (playbackStatus) {
         case PlaybackState.play:
-          _removeNextHold();
           this._animationController?.forward();
           break;
 
         case PlaybackState.pause:
-          _holdNext(); // then pause animation
           this._animationController?.stop(canceled: false);
           break;
 
         case PlaybackState.next:
-          _removeNextHold();
           _goForward();
           break;
 
         case PlaybackState.previous:
-          _removeNextHold();
           _goBack();
           break;
       }
