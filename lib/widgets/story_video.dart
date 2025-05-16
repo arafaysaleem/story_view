@@ -165,7 +165,20 @@ class StoryVideoState extends State<StoryVideo> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildContent(); // Removed container
+    return GestureDetector(
+      onTap: () {
+        if (_playerController != null && _playerController!.value.isInitialized) {
+          if (_playerController!.value.isPlaying) {
+            _playerController!.pause();
+            widget.controller?.pause();
+          } else {
+            _playerController!.play();
+            widget.controller?.play();
+          }
+        }
+      },
+      child: _buildContent(),
+    );
   }
 
   @override
