@@ -227,11 +227,13 @@ class StoryItem {
     Duration? duration,
     BoxFit? videoFit,
     double? videoHeight,
-    bool autoplay = true, // Added autoplay parameter
+    bool autoplay = true,
     bool shown = false,
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
     Widget? errorWidget,
+    double visibleFraction = 0.5,
+    bool resumePlaybackOnVisible = true,
   }) {
     return StoryItem(
         StoryVideo.url(
@@ -242,7 +244,9 @@ class StoryItem {
           errorWidget: errorWidget,
           fit: videoFit,
           height: videoHeight,
-          autoplay: autoplay, // Pass autoplay to StoryVideo
+          autoplay: autoplay,
+          visibleFraction: visibleFraction,
+          resumePlaybackOnVisible: resumePlaybackOnVisible,
         ),
         shown: shown,
         duration: duration ?? Duration(seconds: 10));
