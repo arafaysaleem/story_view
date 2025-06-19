@@ -92,7 +92,7 @@ class StoryVideoState extends State<StoryVideo> {
         _loadState = LoadState.success;
       });
 
-      if (widget.autoplay) {
+      if (widget.autoplay && (widget.controller?.isStoryViewVisible ?? true)) {
         // Start playback automatically.
         _playerController!.play();
         // Resume story playback.

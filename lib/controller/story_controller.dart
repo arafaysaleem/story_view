@@ -10,6 +10,7 @@ enum PlaybackState { pause, play, next, previous }
 class StoryController {
   /// Stream that broadcasts the playback state of the stories.
   final playbackNotifier = BehaviorSubject<PlaybackState>();
+  bool _isStoryViewVisible = true;
 
   /// Notify listeners with a [PlaybackState.pause] state
   void pause() {
@@ -27,6 +28,12 @@ class StoryController {
 
   void previous() {
     playbackNotifier.add(PlaybackState.previous);
+  }
+
+  bool get isStoryViewVisible => _isStoryViewVisible;
+
+  void setStoryViewVisibility(bool isVisible) {
+    _isStoryViewVisible = isVisible;
   }
 
   /// Remember to call dispose when the story screen is disposed to close
