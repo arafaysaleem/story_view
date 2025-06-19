@@ -434,6 +434,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   AnimationController? _animationController;
   Animation<double>? _currentAnimation;
   bool _longPressPaused = false; // Added for long press state
+  bool _isVisible = true;
 
   StreamSubscription<PlaybackState>? _playbackSubscription;
 
@@ -469,6 +470,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
     this._playbackSubscription =
         widget.controller.playbackNotifier.listen((playbackStatus) {
+      if (!_isVisible) return;
+      
       switch (playbackStatus) {
         case PlaybackState.play:
           this._animationController?.forward();
@@ -605,7 +608,8 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
     return VisibilityDetector(
       key: Key('story_view'),
       onVisibilityChanged: (info) {
-        if (info.visibleFraction < widget.visibleFraction) {
+        final isVisible = info.visibleFraction >= widget.visibleFraction;
+        if (!isVisible) {
           if (widget.controller.playbackNotifier.value == PlaybackState.play) {
             widget.controller.pause();
           }
@@ -614,6 +618,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
             widget.controller.play();
           }
         }
+        setState(() => _isVisible = isVisible);
       },
       child: Container(
         color: Colors.white,
