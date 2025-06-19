@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
-import 'package:visibility_detector/visibility_detector.dart';
 
 import '../utils.dart';
 import '../controller/story_controller.dart';
@@ -36,12 +35,6 @@ class StoryVideo extends StatefulWidget {
   /// Whether the video should start playing automatically.
   final bool autoplay;
 
-  /// The fraction of the widget that must be visible to be considered "visible".
-  final double visibleFraction;
-
-  /// Whether to resume playback when the widget becomes visible again.
-  final bool resumePlaybackOnVisible;
-
   /// Creates a StoryVideo widget that plays video from a network URL.
   ///
   /// [url] is the network URL of the video.
@@ -64,8 +57,6 @@ class StoryVideo extends StatefulWidget {
     this.fit,
     this.height,
     this.autoplay = true,
-    this.visibleFraction = 0.9, // Default visible fraction
-    this.resumePlaybackOnVisible = false, // Default resume behavior
   }) : super(key: key ?? UniqueKey());
 
   @override
@@ -78,7 +69,6 @@ class StoryVideoState extends State<StoryVideo> {
   VideoPlayerController? _playerController;
   StreamSubscription? _streamSubscription;
   LoadState _loadState = LoadState.loading;
-  bool _isCurrentlyVisible = true;
 
   @override
   void initState() {
@@ -102,13 +92,13 @@ class StoryVideoState extends State<StoryVideo> {
         _loadState = LoadState.success;
       });
 
-      if (widget.autoplay && _isCurrentlyVisible) {
-        // Start playback automatically only if visible.
+      if (widget.autoplay) {
+        // Start playback automatically.
         _playerController!.play();
         // Resume story playback.
         widget.controller?.play();
       } else {
-        // If not autoplaying or not visible, ensure the story controller remains paused.
+        // If not autoplaying, ensure the story controller remains paused.
         widget.controller?.pause();
       }
 
@@ -119,8 +109,6 @@ class StoryVideoState extends State<StoryVideo> {
           if (playbackState == PlaybackState.pause) {
             _playerController!.pause();
           } else {
-            // Only react to controller changes if the video is visible
-            if (!_isCurrentlyVisible) return;
             _playerController!.play();
           }
         });
@@ -131,24 +119,6 @@ class StoryVideoState extends State<StoryVideo> {
       setState(() {
         _loadState = LoadState.failure;
       });
-    }
-  }
-
-  void _handleVisibilityChange(VisibilityInfo info) {
-    final bool wasVisible = _isCurrentlyVisible;
-    _isCurrentlyVisible = info.visibleFraction >= widget.visibleFraction;
-
-    if (_playerController == null || !_playerController!.value.isInitialized) {
-      return;
-    }
-
-    if (wasVisible && !_isCurrentlyVisible) {
-      _playerController!.pause();
-      // Also pause the story controller
-      widget.controller?.pause();
-    } else if (!wasVisible && _isCurrentlyVisible && widget.resumePlaybackOnVisible) {
-      _playerController!.play();
-      widget.controller?.play();
     }
   }
 
@@ -168,23 +138,15 @@ class StoryVideoState extends State<StoryVideo> {
         ),
       );
 
-      Widget playerWidget;
+      Widget playerWidget = videoPlayer;
       if (widget.height != null) {
-        playerWidget = Center(
-          child: SizedBox(
-            height: widget.height,
-            child: videoPlayer,
-          ),
-        );
-      } else {
-        playerWidget = Center(
-          child: videoPlayer,
+        playerWidget = SizedBox(
+          height: widget.height,
+          child: playerWidget,
         );
       }
 
-      return VisibilityDetector(
-        key: ObjectKey(_playerController), // Use a unique key
-        onVisibilityChanged: _handleVisibilityChange,
+      return Center(
         child: playerWidget,
       );
     }

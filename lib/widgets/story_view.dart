@@ -233,8 +233,6 @@ class StoryItem {
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
     Widget? errorWidget,
-    double visibleFraction = 0.5,
-    bool resumePlaybackOnVisible = true,
   }) {
     return StoryItem(
         StoryVideo.url(
@@ -246,8 +244,6 @@ class StoryItem {
           fit: videoFit,
           height: videoHeight,
           autoplay: autoplay,
-          visibleFraction: visibleFraction,
-          resumePlaybackOnVisible: resumePlaybackOnVisible,
         ),
         shown: shown,
         duration: duration ?? Duration(seconds: 10));
