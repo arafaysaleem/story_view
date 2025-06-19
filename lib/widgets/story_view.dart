@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import '../controller/story_controller.dart';
 import '../utils.dart';
@@ -404,6 +405,12 @@ class StoryView extends StatefulWidget {
   /// Use this if you want to give outer padding to the indicator
   final EdgeInsetsGeometry indicatorOuterPadding;
 
+  /// Whether to resume playback when the story becomes visible again.
+  final bool resumeOnVisible;
+
+  /// The fraction of the story that must be visible for it to be considered visible.
+  final double visibleFraction;
+
   StoryView({
     required this.storyItems,
     required this.controller,
@@ -417,6 +424,8 @@ class StoryView extends StatefulWidget {
     this.indicatorForegroundColor,
     this.indicatorHeight = IndicatorHeight.large,
     this.indicatorOuterPadding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8,),
+    this.resumeOnVisible = true,
+    this.visibleFraction = 0.9,
   });
 
   @override
@@ -597,130 +606,144 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.white,
-      child: Stack(
-        children: <Widget>[
-          GestureDetector(
-            onTap: () {
-              // Always toggle play/pause for the main story controller on central tap.
-              if (widget.controller.playbackNotifier.value ==
-                  PlaybackState.play) {
-                widget.controller.pause();
-              } else {
-                widget.controller.play();
-              }
-            },
-            onLongPressStart: (_) {
-              if (widget.controller.playbackNotifier.value ==
-                  PlaybackState.play) {
-                widget.controller.pause();
-                _longPressPaused = true;
-              }
-            },
-            onLongPressEnd: (_) {
-              if (_longPressPaused) {
-                widget.controller.play();
-                _longPressPaused = false;
-              }
-            },
-            onLongPressCancel: () {
-              if (_longPressPaused) {
-                widget.controller.play();
-                _longPressPaused = false;
-              }
-            },
-            child: _currentView,
-            behavior: HitTestBehavior.opaque, // Capture taps in the central area not caught by left/right
-          ),
-          Visibility(
-            visible: widget.progressPosition != ProgressPosition.none,
-            child: Align(
-              alignment: widget.progressPosition == ProgressPosition.top
-                  ? Alignment.topCenter
-                  : Alignment.bottomCenter,
-              child: SafeArea(
-                bottom: widget.inline ? false : true,
-                // we use SafeArea here for notched and bezeles phones
-                child: Container(
-                  padding: widget.indicatorOuterPadding,
-                  child: PageBar(
-                    widget.storyItems
-                        .map((it) => PageData(it!.duration, it.shown))
-                        .toList(),
-                    this._currentAnimation,
-                    key: UniqueKey(),
-                    indicatorHeight: widget.indicatorHeight,
-                    indicatorColor: widget.indicatorColor,
-                    indicatorForegroundColor: widget.indicatorForegroundColor,
+    return VisibilityDetector(
+      key: Key('story_view'),
+      onVisibilityChanged: (info) {
+        if (info.visibleFraction < widget.visibleFraction) {
+          if (widget.controller.playbackNotifier.value == PlaybackState.play) {
+            widget.controller.pause();
+          }
+        } else {
+          if (widget.resumeOnVisible && widget.controller.playbackNotifier.value == PlaybackState.pause) {
+            widget.controller.play();
+          }
+        }
+      },
+      child: Container(
+        color: Colors.white,
+        child: Stack(
+          children: <Widget>[
+            GestureDetector(
+              onTap: () {
+                // Always toggle play/pause for the main story controller on central tap.
+                if (widget.controller.playbackNotifier.value ==
+                    PlaybackState.play) {
+                  widget.controller.pause();
+                } else {
+                  widget.controller.play();
+                }
+              },
+              onLongPressStart: (_) {
+                if (widget.controller.playbackNotifier.value ==
+                    PlaybackState.play) {
+                  widget.controller.pause();
+                  _longPressPaused = true;
+                }
+              },
+              onLongPressEnd: (_) {
+                if (_longPressPaused) {
+                  widget.controller.play();
+                  _longPressPaused = false;
+                }
+              },
+              onLongPressCancel: () {
+                if (_longPressPaused) {
+                  widget.controller.play();
+                  _longPressPaused = false;
+                }
+              },
+              child: _currentView,
+              behavior: HitTestBehavior.opaque, // Capture taps in the central area not caught by left/right
+            ),
+            Visibility(
+              visible: widget.progressPosition != ProgressPosition.none,
+              child: Align(
+                alignment: widget.progressPosition == ProgressPosition.top
+                    ? Alignment.topCenter
+                    : Alignment.bottomCenter,
+                child: SafeArea(
+                  bottom: widget.inline ? false : true,
+                  // we use SafeArea here for notched and bezeles phones
+                  child: Container(
+                    padding: widget.indicatorOuterPadding,
+                    child: PageBar(
+                      widget.storyItems
+                          .map((it) => PageData(it!.duration, it.shown))
+                          .toList(),
+                      this._currentAnimation,
+                      key: UniqueKey(),
+                      indicatorHeight: widget.indicatorHeight,
+                      indicatorColor: widget.indicatorColor,
+                      indicatorForegroundColor: widget.indicatorForegroundColor,
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.centerRight,
-            heightFactor: 1,
-            child: Container( // Define the tappable area for 'next'
-              width: MediaQuery.of(context).size.width / 3.5, // Approximate right third
-              color: Colors.transparent, // Necessary for hit testing on empty container space
-              child: GestureDetector(
-                onTapUp: (details) { // Simplified to only go next
-                  widget.controller.next();
-                },
-                onVerticalDragStart: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        widget.controller.pause();
-                      },
-                onVerticalDragCancel: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : () {
-                        widget.controller.play();
-                      },
-                onVerticalDragUpdate: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        if (verticalDragInfo == null) {
-                          verticalDragInfo = VerticalDragInfo();
-                        }
+            Align(
+              alignment: Alignment.centerRight,
+              heightFactor: 1,
+              child: Container( // Define the tappable area for 'next'
+                width: MediaQuery.of(context).size.width / 3.5, // Approximate right third
+                color: Colors.transparent, // Necessary for hit testing on empty container space
+                child: GestureDetector(
+                  onTapUp: (details) { // Simplified to only go next
+                    widget.controller.next();
+                  },
+                  onVerticalDragStart: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          widget.controller.pause();
+                        },
+                  onVerticalDragCancel: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : () {
+                          widget.controller.play();
+                        },
+                  onVerticalDragUpdate: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          if (verticalDragInfo == null) {
+                            verticalDragInfo = VerticalDragInfo();
+                          }
 
-                        verticalDragInfo!.update(details.primaryDelta!);
+                          verticalDragInfo!.update(details.primaryDelta!);
 
-                        // TODO: provide callback interface for animation purposes
-                      },
-                onVerticalDragEnd: widget.onVerticalSwipeComplete == null
-                    ? null
-                    : (details) {
-                        widget.controller.play();
-                        // finish up drag cycle
-                        if (!verticalDragInfo!.cancel &&
-                            widget.onVerticalSwipeComplete != null) {
-                          widget.onVerticalSwipeComplete!(
-                              verticalDragInfo!.direction);
-                        }
+                          // TODO: provide callback interface for animation purposes
+                        },
+                  onVerticalDragEnd: widget.onVerticalSwipeComplete == null
+                      ? null
+                      : (details) {
+                          widget.controller.play();
+                          // finish up drag cycle
+                          if (!verticalDragInfo!.cancel &&
+                              widget.onVerticalSwipeComplete != null) {
+                            widget.onVerticalSwipeComplete!(
+                                verticalDragInfo!.direction);
+                          }
 
-                        verticalDragInfo = null;
-                      },
-                behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+                          verticalDragInfo = null;
+                        },
+                  behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+                ),
               ),
             ),
-          ),
-          Align(
-            alignment: Alignment.centerLeft,
-            heightFactor: 1,
-            child: Container( // Define the tappable area for 'previous'
-              width: MediaQuery.of(context).size.width / 3.5, // Approximate left third
-              color: Colors.transparent, // Necessary for hit testing
-              child: GestureDetector(
-                onTap: () {
-                  widget.controller.previous();
-                },
-                behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+            Align(
+              alignment: Alignment.centerLeft,
+              heightFactor: 1,
+              child: Container( // Define the tappable area for 'previous'
+                width: MediaQuery.of(context).size.width / 3.5, // Approximate left third
+                color: Colors.transparent, // Necessary for hit testing
+                child: GestureDetector(
+                  onTap: () {
+                    widget.controller.previous();
+                  },
+                  behavior: HitTestBehavior.opaque, // Capture taps in this specific zone
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
