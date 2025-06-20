@@ -495,6 +495,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    VisibilityDetectorController.instance.notifyNow();
     _animationController?.dispose();
     _playbackSubscription?.cancel();
 
