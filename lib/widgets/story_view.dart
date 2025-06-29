@@ -612,6 +612,7 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
         if (!isVisible) {
           if (widget.controller.playbackNotifier.value == PlaybackState.play) {
             widget.controller.pause();
+            this._animationController?.stop(canceled: false);
           }
         } else {
           if (widget.resumeOnVisible && widget.controller.playbackNotifier.value == PlaybackState.pause) {
