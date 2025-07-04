@@ -233,6 +233,7 @@ class StoryItem {
     Map<String, String>? requestHeaders,
     Widget? loadingWidget,
     Widget? errorWidget,
+    bool controlPlaybackOnTap = true,
   }) {
     return StoryItem(
         StoryVideo.url(
@@ -407,6 +408,9 @@ class StoryView extends StatefulWidget {
   /// The fraction of the story that must be visible for it to be considered visible.
   final double visibleFraction;
 
+  /// Whether tapping should control playback (pause/play)
+  final bool controlPlaybackOnTap;
+
   StoryView({
     required this.storyItems,
     required this.controller,
@@ -422,6 +426,7 @@ class StoryView extends StatefulWidget {
     this.indicatorOuterPadding = const EdgeInsets.symmetric(horizontal: 16, vertical: 8,),
     this.resumeOnVisible = true,
     this.visibleFraction = 0.9,
+    this.controlPlaybackOnTap = true,
   });
 
   @override
@@ -630,12 +635,14 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
           children: <Widget>[
             GestureDetector(
               onTap: () {
-                // Always toggle play/pause for the main story controller on central tap.
-                if (widget.controller.playbackNotifier.value ==
-                    PlaybackState.play) {
-                  widget.controller.pause();
-                } else {
-                  widget.controller.play();
+                // Only toggle play/pause if controlPlaybackOnTap is true
+                if (widget.controlPlaybackOnTap) {
+                  if (widget.controller.playbackNotifier.value ==
+                      PlaybackState.play) {
+                    widget.controller.pause();
+                  } else {
+                    widget.controller.play();
+                  }
                 }
               },
               onLongPressStart: (_) {
