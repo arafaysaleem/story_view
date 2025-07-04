@@ -453,6 +453,9 @@ class StoryViewState extends State<StoryView> with TickerProviderStateMixin {
   void initState() {
     super.initState();
 
+    // Set VisibilityDetector update interval to zero to prevent bugs with fast screen switching
+    VisibilityDetectorController.instance.updateInterval = Duration.zero;
+
     // All pages after the first unshown page should have their shown value as
     // false
     final firstPage = widget.storyItems.firstWhereOrNull((it) => !it!.shown);
